@@ -10,6 +10,7 @@ data ColumnDefinition = ColumnDefinition {
     colName :: String
     , colType :: String
     , colDataLen :: String
+    , colDefaults :: Maybe String
     } deriving (Show)
 
 -- Match the lowercase or uppercase form of 'c'
@@ -32,21 +33,34 @@ colDataTypeParser = string "int"
         <|> string "float"
 
 leftParen = char '('
+rightParen = char ')'
+
+defaultsParser = string "not null" <|> string "default null"
+
+colDataLenParser =
+  do leftParen
+     spaces
+     colDataTypeLen <- many1 digit
+     spaces
+     rightParen
+     return colDataTypeLen
 
 columnDefinition =
-    do  spaces
-        leftParen
+    do
+        try $ char ','
         spaces
         columnName <- sqlName
         spaces
         colDataType <- colDataTypeParser
+        colDataTypeLen <- colDataLenParser
         spaces
-        leftParen
-        colDataTypeLen <- many1 digit
+        defaults <- try defaultsParser
+
         return (ColumnDefinition {
             colName = columnName
             , colType = colDataType
             , colDataLen = colDataTypeLen
+            , colDefaults = Just defaults
             })
 
 query =
@@ -58,6 +72,8 @@ query =
       schemaName <- sqlName
       char '.'
       tableName <- sqlName
+      spaces
+      leftParen
       d <- columnDefinition
       return [[schemaName, tableName, (colName d), (colType d), (colDataLen d)]]
 
