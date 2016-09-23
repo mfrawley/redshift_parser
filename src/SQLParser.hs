@@ -1,28 +1,27 @@
 module SQLParser
-    ( parseSQL
-    )
+
 where
 
-import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError, alphaNum, many1, char, try, many1, digit)
+import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
+  , alphaNum, many1, char, try, many1, digit, optionMaybe, option)
 import Data.Char (toLower, toUpper)
+
+import Data.Maybe
 
 data ColumnDefinition = ColumnDefinition {
     colName :: String
     , colType :: String
-    , colDataLen :: String
-    , colDefaults :: Maybe String
-    } deriving (Show)
+    , colDataLen :: Maybe String
+    , colDefaults :: String
+} deriving (Show)
 
--- Match the lowercase or uppercase form of 'c'
--- caseInsensitiveChar c = char (toLower c) <|> char (toUpper c)
---
--- -- Match the string 's', accepting either lowercase or uppercase form of each character
--- caseInsensitiveString s = try (mapM caseInsensitiveChar s) <?> "\"" ++ s ++ "\""
-
--- spaces = many1 (string " ")
+data TableDefinition = TableDefinition {
+    schemaName :: String
+  , tableName :: String
+  , columnDefs :: [ColumnDefinition]
+} deriving (Show)
 
 createStm = string "create"
-
 table = string "table"
 
 {-Parses a table or column name-}
@@ -38,29 +37,51 @@ rightParen = char ')'
 defaultsParser = string "not null" <|> string "default null"
 
 colDataLenParser =
-  do leftParen
+  do spaces
+     leftParen
      spaces
      colDataTypeLen <- many1 digit
      spaces
      rightParen
+     spaces
      return colDataTypeLen
 
-columnDefinition =
+lineBeginningWithComma =
+  do spaces
+     char ','
+     spaces
+
+colWithNoSize =
+  do
+    lineBeginningWithComma <|> spaces
+    columnName <- sqlName
+    spaces
+    colDataType <- colDataTypeParser
+    defaults <- option "" defaultsParser
+
+    return (ColumnDefinition {
+        colName = columnName
+        , colType = colDataType
+        , colDataLen = Nothing
+        , colDefaults = defaults
+        })
+
+colWithSize =
     do
-        try $ char ','
-        spaces
+        lineBeginningWithComma <|> spaces
         columnName <- sqlName
         spaces
         colDataType <- colDataTypeParser
         colDataTypeLen <- colDataLenParser
+
+        defaults <- option "" defaultsParser
         spaces
-        defaults <- try defaultsParser
 
         return (ColumnDefinition {
             colName = columnName
             , colType = colDataType
-            , colDataLen = colDataTypeLen
-            , colDefaults = Just defaults
+            , colDataLen = Just colDataTypeLen
+            , colDefaults = defaults
             })
 
 query =
@@ -74,8 +95,9 @@ query =
       tableName <- sqlName
       spaces
       leftParen
-      d <- columnDefinition
-      return [[schemaName, tableName, (colName d), (colType d), (colDataLen d)]]
+      colDefs <- (many1 (colWithNoSize <|> colWithSize))
+      -- return [[schemaName, tableName, (colName d), (colType d), (colDataLen d)]]
+      return colDefs
 
-parseSQL :: String -> Either ParseError [[String]]
+parseSQL :: String -> Either ParseError [ColumnDefinition]
 parseSQL input = parse query "(unknown)" input
