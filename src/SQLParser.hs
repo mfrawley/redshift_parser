@@ -3,7 +3,7 @@ module SQLParser
 where
 
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
-  , alphaNum, many1, char, try, many1, digit, optionMaybe, option)
+  , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
 import Data.Char (toLower, toUpper)
 
 import Data.Maybe
@@ -43,7 +43,6 @@ colDataLenParser =
      colDataTypeLen <- many1 digit
      spaces
      rightParen
-     spaces
      return colDataTypeLen
 
 lineBeginningWithComma =
@@ -57,7 +56,9 @@ colWithNoSize =
     columnName <- sqlName
     spaces
     colDataType <- colDataTypeParser
+    spaces
     defaults <- option "" defaultsParser
+    spaces
 
     return (ColumnDefinition {
         colName = columnName
