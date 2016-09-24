@@ -47,7 +47,7 @@ colDataLenParser =
 
 lineBeginningWithComma =
   do spaces
-     char ','
+     c <- optionMaybe (char ',')
      spaces
 
 colWithNoSize =
@@ -73,8 +73,9 @@ colWithSize =
         columnName <- sqlName
         spaces
         colDataType <- colDataTypeParser
+        spaces
         colDataTypeLen <- colDataLenParser
-
+        spaces
         defaults <- option "" defaultsParser
         spaces
 

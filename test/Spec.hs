@@ -11,11 +11,12 @@ testDefaultsParser = do
 testColWithNoSize = do
   parseTest colWithNoSize " , activity_id     int           not null \n"
 
--- testColWithSize = do
---   parseTest colWithSize " , activity_id     int           not null"
+testColWithSize = do
+  parseTest colWithSize "   activity_name   varchar(255)  not null\n"
 
 main :: IO ()
 main = do
   testParsingSQLName
   testDefaultsParser
   testColWithNoSize
+  testColWithSize
