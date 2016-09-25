@@ -18,7 +18,8 @@ data ColumnDefinition = ColumnDefinition {
 data TableDefinition = TableDefinition {
     schemaName :: String
   , tableName :: String
-  , columnDefs :: [ColumnDefinition]
+  , columns :: [ColumnDefinition]
+  , primaryKey :: Maybe String
 } deriving (Show)
 
 createStm = string "create"
@@ -35,6 +36,20 @@ leftParen = char '('
 rightParen = char ')'
 
 defaultsParser = string "not null" <|> string "default null"
+primaryKeyLiteral = string "primary key"
+
+primaryKeyLineParser =
+  do lineBeginningWithComma
+     primaryKeyLiteral
+     spaces
+     leftParen
+     spaces
+     primaryKeyCol <- sqlName
+     spaces
+     rightParen
+     spaces
+     return primaryKeyCol
+
 
 colDataLenParser =
   do spaces
@@ -50,31 +65,14 @@ lineBeginningWithComma =
      c <- optionMaybe (char ',')
      spaces
 
-colWithNoSize =
-  do
-    lineBeginningWithComma <|> spaces
-    columnName <- sqlName
-    spaces
-    colDataType <- colDataTypeParser
-    spaces
-    defaults <- option "" defaultsParser
-    spaces
-
-    return (ColumnDefinition {
-        colName = columnName
-        , colType = colDataType
-        , colDataLen = Nothing
-        , colDefaults = defaults
-        })
-
 colWithSize =
     do
-        lineBeginningWithComma <|> spaces
+        lineBeginningWithComma
         columnName <- sqlName
         spaces
         colDataType <- colDataTypeParser
         spaces
-        colDataTypeLen <- colDataLenParser
+        colDataTypeLen <- optionMaybe colDataLenParser
         spaces
         defaults <- option "" defaultsParser
         spaces
@@ -82,7 +80,7 @@ colWithSize =
         return (ColumnDefinition {
             colName = columnName
             , colType = colDataType
-            , colDataLen = Just colDataTypeLen
+            , colDataLen = colDataTypeLen
             , colDefaults = defaults
             })
 
@@ -92,14 +90,21 @@ query =
       spaces
       t <- table
       spaces
-      schemaName <- sqlName
+      schema <- sqlName
       char '.'
-      tableName <- sqlName
+      table <- sqlName
       spaces
       leftParen
-      colDefs <- (many1 (colWithNoSize <|> colWithSize))
+      colDefs <- (many1 (try colWithSize))
+      pKey <- optionMaybe primaryKeyLineParser
       -- return [[schemaName, tableName, (colName d), (colType d), (colDataLen d)]]
-      return colDefs
+      return (TableDefinition {
+          tableName = table
+        , schemaName = schema
+        , columns = colDefs
+        , primaryKey = pKey
+        })
 
-parseSQL :: String -> Either ParseError [ColumnDefinition]
+
+parseSQL :: String -> Either ParseError TableDefinition
 parseSQL input = parse query "(unknown)" input

@@ -9,10 +9,13 @@ testDefaultsParser = do
   parseTest defaultsParser "default null"
 
 testColWithNoSize = do
-  parseTest colWithNoSize " , activity_id     int           not null \n"
+  parseTest colWithSize " , activity_id     int           not null \n"
 
 testColWithSize = do
   parseTest colWithSize "   activity_name   varchar(255)  not null\n"
+
+testPrimaryKeyLine = do
+  parseTest primaryKeyLineParser ", primary key(activity_id)\n"
 
 main :: IO ()
 main = do
@@ -20,3 +23,4 @@ main = do
   testDefaultsParser
   testColWithNoSize
   testColWithSize
+  testPrimaryKeyLine
