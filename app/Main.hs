@@ -1,10 +1,10 @@
 {-# LANGUAGE DeriveDataTypeable, RecordWildCards, OverloadedStrings #-}
 module Main where
-import Prelude hiding (interact, concat, unlines, null, putStrLn)
+import Prelude hiding (putStrLn)
 import Lib
 import SQLParser
 import Data.Aeson.Encode.Pretty (encodePretty)
-import Data.ByteString.Lazy.Char8 (ByteString, interact, unlines, null, putStrLn)
+import Data.ByteString.Lazy.Char8 (ByteString, putStrLn)
 
 main =
     do c <- getContents
