@@ -1,11 +1,14 @@
+{-# LANGUAGE DeriveGeneric, DeriveAnyClass #-}
 module SQLParser
 
 where
-
+import GHC.Generics
+import Data.Aeson (ToJSON, FromJSON)
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
   , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
 import Data.Char (toLower, toUpper)
-
+import Text.Parsec.Prim (ParsecT)
+import Data.Functor.Identity
 import Data.Maybe
 
 data ColumnDefinition = ColumnDefinition {
@@ -13,14 +16,15 @@ data ColumnDefinition = ColumnDefinition {
     , colType :: String
     , colDataLen :: Maybe String
     , colDefaults :: String
-} deriving (Show)
+} deriving (Generic, Show, ToJSON, FromJSON)
 
 data TableDefinition = TableDefinition {
     schemaName :: String
   , tableName :: String
   , columns :: [ColumnDefinition]
   , primaryKey :: Maybe String
-} deriving (Show)
+  , uniqueKey :: Maybe String
+} deriving (Generic, Show, ToJSON, FromJSON)
 
 createStm = string "create"
 table = string "table"
@@ -36,20 +40,27 @@ leftParen = char '('
 rightParen = char ')'
 
 defaultsParser = string "not null" <|> string "default null"
+
 primaryKeyLiteral = string "primary key"
 
-primaryKeyLineParser =
+uniqueKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+uniqueKeyLiteral = string "unique"
+
+keyLineParser literalParser =
   do lineBeginningWithComma
-     primaryKeyLiteral
+     literalParser
      spaces
      leftParen
      spaces
-     primaryKeyCol <- sqlName
+     keyCol <- sqlName
      spaces
      rightParen
      spaces
-     return primaryKeyCol
+     return keyCol
 
+primaryKeyLineParser = keyLineParser primaryKeyLiteral
+
+uniqueKeyLineParser = keyLineParser uniqueKeyLiteral
 
 colDataLenParser =
   do spaces
@@ -97,12 +108,15 @@ query =
       leftParen
       colDefs <- (many1 (try colWithSize))
       pKey <- optionMaybe primaryKeyLineParser
+      uKey <- optionMaybe uniqueKeyLineParser
+      rightParen
       -- return [[schemaName, tableName, (colName d), (colType d), (colDataLen d)]]
       return (TableDefinition {
           tableName = table
         , schemaName = schema
         , columns = colDefs
         , primaryKey = pKey
+        , uniqueKey = uKey
         })
 
 
