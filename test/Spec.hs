@@ -1,26 +1,40 @@
 import SQLParser
-import Text.ParserCombinators.Parsec (parseTest)
+import Text.ParserCombinators.Parsec (parseTest, parse)
+import Test.HUnit (Test(..), assertEqual, assertFailure, runTestTT)
 
-testParsingSQLName =
-  parseTest sqlName "bad_test"
+-- test1 = TestCase (assertEqual "for (foo 3)," (1,2) (foo 3))
 
-testDefaultsParser = do
-  parseTest defaultsParser "not null"
-  parseTest defaultsParser "default null"
+testParsingSQLName = TestCase $ assertEqual
+    "should parse sql identifier"
+    "bad_test"
+    (do
+      case parse sqlName "" "bad_test" of
+        Left e -> ""
+        Right s -> s
+      )
 
-testColWithNoSize = do
-  parseTest colWithSize " , activity_id     int           not null \n"
+-- testDefaultsParser = do
+--   parseTest defaultsParser "not null"
+--   parseTest defaultsParser "default null"
+--
+-- testColWithNoSize = do
+--   parseTest colWithSize " , activity_id     int           not null \n"
+--
+-- testColWithSize = do
+--   parseTest colWithSize "   activity_name   varchar(255)  not null\n"
+--
+-- testPrimaryKeyLine = do
+--   parseTest primaryKeyLineParser ", primary key(activity_id)\n"
+--
+-- distStyleTest = do
+--   parseTest distStyleParser "diststyle key"
 
-testColWithSize = do
-  parseTest colWithSize "   activity_name   varchar(255)  not null\n"
+tests = TestList [TestLabel "testParsingSQLName" testParsingSQLName]
 
-testPrimaryKeyLine = do
-  parseTest primaryKeyLineParser ", primary key(activity_id)\n"
-
-main :: IO ()
 main = do
-  testParsingSQLName
-  testDefaultsParser
-  testColWithNoSize
-  testColWithSize
-  testPrimaryKeyLine
+  runTestTT tests
+  -- testParsingSQLName
+  -- testDefaultsParser
+  -- testColWithNoSize
+  -- testColWithSize
+  -- testPrimaryKeyLine

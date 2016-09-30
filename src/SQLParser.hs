@@ -24,6 +24,7 @@ data TableDefinition = TableDefinition {
   , columns :: [ColumnDefinition]
   , primaryKey :: Maybe String
   , uniqueKey :: Maybe String
+  , distStyle :: Maybe String
 } deriving (Generic, Show, ToJSON, FromJSON)
 
 createStm = string "create"
@@ -46,78 +47,87 @@ primaryKeyLiteral = string "primary key"
 uniqueKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 uniqueKeyLiteral = string "unique"
 
-keyLineParser literalParser =
-  do lineBeginningWithComma
-     literalParser
-     spaces
-     leftParen
-     spaces
-     keyCol <- sqlName
-     spaces
-     rightParen
-     spaces
-     return keyCol
+keyLineParser literalParser = do
+    lineBeginningWithComma
+    literalParser
+    spaces
+    leftParen
+    spaces
+    keyCol <- sqlName
+    spaces
+    rightParen
+    spaces
+    return keyCol
 
 primaryKeyLineParser = keyLineParser primaryKeyLiteral
 
 uniqueKeyLineParser = keyLineParser uniqueKeyLiteral
 
-colDataLenParser =
-  do spaces
-     leftParen
-     spaces
-     colDataTypeLen <- many1 digit
-     spaces
-     rightParen
-     return colDataTypeLen
+distStyleParser = do
+    string "diststyle"
+    spaces
+    dStyle <- string "all" <|> string "even" <|> string "key"
+    spaces
+    return dStyle
 
-lineBeginningWithComma =
-  do spaces
-     c <- optionMaybe (char ',')
-     spaces
+colDataLenParser = do
+    spaces
+    leftParen
+    spaces
+    colDataTypeLen <- many1 digit
+    spaces
+    rightParen
+    return colDataTypeLen
 
-colWithSize =
-    do
-        lineBeginningWithComma
-        columnName <- sqlName
-        spaces
-        colDataType <- colDataTypeParser
-        spaces
-        colDataTypeLen <- optionMaybe colDataLenParser
-        spaces
-        defaults <- option "" defaultsParser
-        spaces
+lineBeginningWithComma = do
+    spaces
+    c <- optionMaybe (char ',')
+    spaces
 
-        return (ColumnDefinition {
-            colName = columnName
-            , colType = colDataType
-            , colDataLen = colDataTypeLen
-            , colDefaults = defaults
-            })
+colWithSize = do
+    lineBeginningWithComma
+    columnName <- sqlName
+    spaces
+    colDataType <- colDataTypeParser
+    spaces
+    colDataTypeLen <- optionMaybe colDataLenParser
+    spaces
+    defaults <- option "" defaultsParser
+    spaces
 
-query =
-  do  spaces
-      createStm
-      spaces
-      t <- table
-      spaces
-      schema <- sqlName
-      char '.'
-      table <- sqlName
-      spaces
-      leftParen
-      colDefs <- (many1 (try colWithSize))
-      pKey <- optionMaybe primaryKeyLineParser
-      uKey <- optionMaybe uniqueKeyLineParser
-      rightParen
-      -- return [[schemaName, tableName, (colName d), (colType d), (colDataLen d)]]
-      return (TableDefinition {
-          tableName = table
-        , schemaName = schema
-        , columns = colDefs
-        , primaryKey = pKey
-        , uniqueKey = uKey
+    return (ColumnDefinition {
+        colName = columnName
+        , colType = colDataType
+        , colDataLen = colDataTypeLen
+        , colDefaults = defaults
         })
+
+query = do
+    spaces
+    createStm
+    spaces
+    t <- table
+    spaces
+    schema <- sqlName
+    char '.'
+    table <- sqlName
+    spaces
+    leftParen
+    colDefs <- (many1 (try colWithSize))
+    pKey <- optionMaybe primaryKeyLineParser
+    uKey <- optionMaybe uniqueKeyLineParser
+    rightParen
+    spaces
+    dStyle <- optionMaybe distStyleParser
+
+    return (TableDefinition {
+        tableName = table
+      , schemaName = schema
+      , columns = colDefs
+      , primaryKey = pKey
+      , uniqueKey = uKey
+      , distStyle = dStyle
+      })
 
 
 parseSQL :: String -> Either ParseError TableDefinition
