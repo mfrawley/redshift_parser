@@ -31,17 +31,24 @@ createStm = string "create"
 table = string "table"
 
 {-Parses a table or column name-}
+sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity [Char]
 sqlName = many1 $ alphaNum <|> char '_'
 
+colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 colDataTypeParser = string "int"
         <|> string "varchar"
         <|> string "float"
 
+leftParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
 leftParen = char '('
+
+rightParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
 rightParen = char ')'
 
+defaultsParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 defaultsParser = string "not null" <|> string "default null"
 
+primaryKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 primaryKeyLiteral = string "primary key"
 
 uniqueKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
@@ -59,10 +66,17 @@ keyLineParser literalParser = do
     spaces
     return keyCol
 
+
+primaryKeyLineParser :: Text.Parsec.Prim.ParsecT
+           [Char] u Data.Functor.Identity.Identity [Char]
 primaryKeyLineParser = keyLineParser primaryKeyLiteral
 
+uniqueKeyLineParser :: Text.Parsec.Prim.ParsecT
+           [Char] u Data.Functor.Identity.Identity [Char]
 uniqueKeyLineParser = keyLineParser uniqueKeyLiteral
 
+distStyleParser :: Text.Parsec.Prim.ParsecT
+           String u Data.Functor.Identity.Identity String
 distStyleParser = do
     string "diststyle"
     spaces
@@ -70,6 +84,8 @@ distStyleParser = do
     spaces
     return dStyle
 
+colDataLenParser  :: Text.Parsec.Prim.ParsecT
+           [Char] u Data.Functor.Identity.Identity [Char]
 colDataLenParser = do
     spaces
     leftParen
@@ -79,11 +95,15 @@ colDataLenParser = do
     rightParen
     return colDataTypeLen
 
+lineBeginningWithComma :: Text.Parsec.Prim.ParsecT
+       [Char] u Data.Functor.Identity.Identity ()
 lineBeginningWithComma = do
     spaces
     c <- optionMaybe (char ',')
     spaces
 
+colWithSize :: Text.Parsec.Prim.ParsecT
+       [Char] u Data.Functor.Identity.Identity ColumnDefinition
 colWithSize = do
     lineBeginningWithComma
     columnName <- sqlName
@@ -102,6 +122,8 @@ colWithSize = do
         , colDefaults = defaults
         })
 
+query :: Text.Parsec.Prim.ParsecT
+       String u Data.Functor.Identity.Identity TableDefinition
 query = do
     spaces
     createStm
