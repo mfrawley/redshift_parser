@@ -16,7 +16,7 @@ data ColumnDefinition = ColumnDefinition {
     , colType :: String
     , colDataLen :: Maybe String
     , colDefaults :: String
-} deriving (Generic, Show, ToJSON, FromJSON)
+} deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
 data TableDefinition = TableDefinition {
     schemaName :: String
@@ -25,7 +25,7 @@ data TableDefinition = TableDefinition {
   , primaryKey :: Maybe String
   , uniqueKey :: Maybe String
   , distStyle :: Maybe String
-} deriving (Generic, Show, ToJSON, FromJSON)
+} deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
 createStm = string "create"
 table = string "table"
