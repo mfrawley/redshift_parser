@@ -39,15 +39,15 @@ testVarcharColWithSize = TestCase $ assertEqual
       })
   (forceEither $ parse colWithSize  "" "   activity_name   varchar(255)  not null\n")
 
---
--- testColWithSize = do
---   parseTest colWithSize "   activity_name   varchar(255)  not null\n"
---
--- testPrimaryKeyLine = do
---   parseTest primaryKeyLineParser ", primary key(activity_id)\n"
---
--- distStyleTest = do
---   parseTest distStyleParser "diststyle key"
+testPrimaryKeyLine = TestCase $ assertEqual
+  "should parse a line defining a primary key field"
+  "activity_id"
+  (forceEither $ parse primaryKeyLineParser "" ", primary key(activity_id)\n")
+
+testDistStyle = TestCase $ assertEqual
+  "should parse a line defining a distribution style for the table"
+  "key"
+  (forceEither $ parse distStyleParser "" "diststyle key")
 
 tests = TestList [
            TestLabel "testParsingSQLName" testParsingSQLName
@@ -55,6 +55,8 @@ tests = TestList [
           , TestLabel "testDefaultsParserDefaultNull" testDefaultsParserDefaultNull
           , TestLabel "testColWithNoSize" testColWithNoSize
           , TestLabel "testVarcharColWithSize" testVarcharColWithSize
+          , TestLabel "testPrimaryKeyLine" testPrimaryKeyLine
+          , TestLabel "testDistStyle" testDistStyle
         ]
 
 main = do
