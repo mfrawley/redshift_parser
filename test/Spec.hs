@@ -50,13 +50,13 @@ testDistStyle = TestCase $ assertEqual
   (forceEither $ parse distStyleParser "" "diststyle key")
 
 tests = TestList [
-           TestLabel "testParsingSQLName" testParsingSQLName
-          , TestLabel "testDefaultsParserNotNull" testDefaultsParserNotNull
-          , TestLabel "testDefaultsParserDefaultNull" testDefaultsParserDefaultNull
-          , TestLabel "testColWithNoSize" testColWithNoSize
-          , TestLabel "testVarcharColWithSize" testVarcharColWithSize
-          , TestLabel "testPrimaryKeyLine" testPrimaryKeyLine
-          , TestLabel "testDistStyle" testDistStyle
+           testParsingSQLName
+          , testDefaultsParserNotNull
+          , testDefaultsParserDefaultNull
+          , testColWithNoSize
+          , testVarcharColWithSize
+          , testPrimaryKeyLine
+          , testDistStyle
         ]
 
 main = do
