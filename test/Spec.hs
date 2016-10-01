@@ -19,7 +19,6 @@ testDefaultsParserDefaultNull = TestCase $ assertEqual
   "default null"
   (forceEither $ parse defaultsParser "" "default null")
 
-
 testColWithNoSize = TestCase $ assertEqual
   "should a line defining a column with no size defined"
   (ColumnDefinition {
@@ -29,6 +28,17 @@ testColWithNoSize = TestCase $ assertEqual
       , colDefaults = "not null"
       })
   (forceEither $ parse colWithSize  "" " , activity_id     int           not null \n")
+
+testVarcharColWithSize = TestCase $ assertEqual
+  "should a line defining a column with no size defined"
+  (ColumnDefinition {
+      colName = "activity_name"
+      , colType = "varchar"
+      , colDataLen = Just "255"
+      , colDefaults = "not null"
+      })
+  (forceEither $ parse colWithSize  "" "   activity_name   varchar(255)  not null\n")
+
 --
 -- testColWithSize = do
 --   parseTest colWithSize "   activity_name   varchar(255)  not null\n"
@@ -44,6 +54,7 @@ tests = TestList [
           , TestLabel "testDefaultsParserNotNull" testDefaultsParserNotNull
           , TestLabel "testDefaultsParserDefaultNull" testDefaultsParserDefaultNull
           , TestLabel "testColWithNoSize" testColWithNoSize
+          , TestLabel "testVarcharColWithSize" testVarcharColWithSize
         ]
 
 main = do
