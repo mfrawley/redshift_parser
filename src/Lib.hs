@@ -1,33 +1,21 @@
 module Lib
-    ( parseCSV
+    ( sqlName
+    , leftParen
+    , rightParen
     )
 where
+import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
+  , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
+import Text.Parsec.Prim (ParsecT)
+import Data.Functor.Identity
 
-import Text.ParserCombinators.Parsec
+{-Parses a table or column name-}
+sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity [Char]
+sqlName = many1 $ alphaNum <|> char '_'
 
-quotedCell =
-    do char '"'
-       content <- many quotedChar
-       char '"' <?> "quote at end of cell"
-       return content
 
-quotedChar =
-        noneOf "\""
-    <|> try (string "\"\"" >> return '"')
+leftParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
+leftParen = char '('
 
-eol =   try (string "\n\r")
-    <|> try (string "\r\n")
-    <|> string "\n"
-    <|> string "\r"
-    <?> "end of line"
-
-tabOrFail = tab <?> "Tab char"
-line = sepBy cell tabOrFail
-cell = quotedCell <|> many (noneOf ",\n\r")
-
-csvFile = endBy line eol
-
--- comma = char ','
-
-parseCSV :: String -> Either ParseError [[String]]
-parseCSV input = parse csvFile "(unknown)" input
+rightParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
+rightParen = char ')'

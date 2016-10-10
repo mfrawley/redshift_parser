@@ -2,6 +2,7 @@
 module SQLParser
 
 where
+import Lib
 import GHC.Generics
 import Data.Aeson (ToJSON, FromJSON)
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
@@ -30,20 +31,10 @@ data TableDefinition = TableDefinition {
 createStm = string "create"
 table = string "table"
 
-{-Parses a table or column name-}
-sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity [Char]
-sqlName = many1 $ alphaNum <|> char '_'
-
 colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 colDataTypeParser = string "int"
         <|> string "varchar"
         <|> string "float"
-
-leftParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
-leftParen = char '('
-
-rightParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
-rightParen = char ')'
 
 defaultsParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 defaultsParser = string "not null" <|> string "default null"
