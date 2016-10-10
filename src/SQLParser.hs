@@ -4,10 +4,12 @@ module SQLParser
 where
 import GHC.Generics
 import Data.Aeson (ToJSON, FromJSON)
-import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
-  , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
+import Text.Megaparsec ((<|>), (<?>), string, space, parse, ParseError)
+
+-- import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
+--   , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
 import Data.Char (toLower, toUpper)
-import Text.Parsec.Prim (ParsecT)
+import Text.Megaparsec.Prim (ParsecT)
 import Data.Functor.Identity
 import Data.Maybe
 
@@ -27,31 +29,32 @@ data TableDefinition = TableDefinition {
   , distStyle :: Maybe String
 } deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
+spaces = many space
 createStm = string "create"
 table = string "table"
 
 {-Parses a table or column name-}
-sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity [Char]
+sqlName :: Text.Megaparsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity [Char]
 sqlName = many1 $ alphaNum <|> char '_'
 
-colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+colDataTypeParser :: Text.Megaparsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 colDataTypeParser = string "int"
         <|> string "varchar"
         <|> string "float"
 
-leftParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
+leftParen :: Text.Megaparsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
 leftParen = char '('
 
-rightParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
+rightParen :: Text.Megaparsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
 rightParen = char ')'
 
-defaultsParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+defaultsParser :: Text.Megaparsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 defaultsParser = string "not null" <|> string "default null"
 
-primaryKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+primaryKeyLiteral :: Text.Megaparsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 primaryKeyLiteral = string "primary key"
 
-uniqueKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+uniqueKeyLiteral :: Text.Megaparsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 uniqueKeyLiteral = string "unique"
 
 keyLineParser literalParser = do
@@ -67,15 +70,15 @@ keyLineParser literalParser = do
     return keyCol
 
 
-primaryKeyLineParser :: Text.Parsec.Prim.ParsecT
+primaryKeyLineParser :: Text.Megaparsec.Prim.ParsecT
            [Char] u Data.Functor.Identity.Identity [Char]
 primaryKeyLineParser = keyLineParser primaryKeyLiteral
 
-uniqueKeyLineParser :: Text.Parsec.Prim.ParsecT
+uniqueKeyLineParser :: Text.Megaparsec.Prim.ParsecT
            [Char] u Data.Functor.Identity.Identity [Char]
 uniqueKeyLineParser = keyLineParser uniqueKeyLiteral
 
-distStyleParser :: Text.Parsec.Prim.ParsecT
+distStyleParser :: Text.Megaparsec.Prim.ParsecT
            String u Data.Functor.Identity.Identity String
 distStyleParser = do
     string "diststyle"
@@ -84,7 +87,7 @@ distStyleParser = do
     spaces
     return dStyle
 
-colDataLenParser  :: Text.Parsec.Prim.ParsecT
+colDataLenParser  :: Text.Megaparsec.Prim.ParsecT
            [Char] u Data.Functor.Identity.Identity [Char]
 colDataLenParser = do
     spaces
@@ -95,14 +98,14 @@ colDataLenParser = do
     rightParen
     return colDataTypeLen
 
-lineBeginningWithComma :: Text.Parsec.Prim.ParsecT
+lineBeginningWithComma :: Text.Megaparsec.Prim.ParsecT
        [Char] u Data.Functor.Identity.Identity ()
 lineBeginningWithComma = do
     spaces
     c <- optionMaybe (char ',')
     spaces
 
-colWithSize :: Text.Parsec.Prim.ParsecT
+colWithSize :: Text.Megaparsec.Prim.ParsecT
        [Char] u Data.Functor.Identity.Identity ColumnDefinition
 colWithSize = do
     lineBeginningWithComma
@@ -122,7 +125,7 @@ colWithSize = do
         , colDefaults = defaults
         })
 
-query :: Text.Parsec.Prim.ParsecT
+query :: Text.Megaparsec.Prim.ParsecT
        String u Data.Functor.Identity.Identity TableDefinition
 query = do
     spaces

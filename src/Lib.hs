@@ -3,7 +3,8 @@ module Lib
     )
 where
 
-import Text.ParserCombinators.Parsec
+-- import Text.ParserCombinators.Parsec
+import Text.Megaparsec.Combinator
 
 quotedCell =
     do char '"'
