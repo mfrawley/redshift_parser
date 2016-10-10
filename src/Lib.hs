@@ -2,6 +2,7 @@ module Lib
     ( sqlName
     , leftParen
     , rightParen
+    , tableRef
     )
 where
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
@@ -13,6 +14,15 @@ import Data.Functor.Identity
 sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity [Char]
 sqlName = many1 $ alphaNum <|> char '_'
 
+fullyQualifiedTableRef = do
+  table <- sqlName
+  char '.'
+  col <- sqlName
+  return [table, col]
+
+wildCard = char '*'
+
+tableRef = wildCard <|> fullyQualifiedTable <|> sqlName
 
 leftParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
 leftParen = char '('
