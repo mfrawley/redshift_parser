@@ -11,16 +11,16 @@ import Text.Parsec.Prim (ParsecT)
 import Data.Functor.Identity
 
 {-Parses a table or column name-}
-sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity [Char]
+sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 sqlName = many1 $ alphaNum <|> char '_'
 
-fullyQualifiedTableRef = do
+fullyQualifiedTable = do
   table <- sqlName
   char '.'
   col <- sqlName
-  return [table, col]
+  return table
 
-wildCard = char '*'
+wildCard = string "*"
 
 tableRef = wildCard <|> fullyQualifiedTable <|> sqlName
 

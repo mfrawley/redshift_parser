@@ -35,6 +35,8 @@ colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Ide
 colDataTypeParser = string "int"
         <|> string "varchar"
         <|> string "float"
+        <|> string "timestamp"
+        <|> string "bigint"
 
 defaultsParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 defaultsParser = string "not null" <|> string "default null"
@@ -113,9 +115,26 @@ colWithSize = do
         , colDefaults = defaults
         })
 
-query :: Text.Parsec.Prim.ParsecT
+dropTableStm = string "drop table"
+
+ifExistsStm = string "if exists" <|> string "if not exists"
+
+dropTableQuery = do
+    spaces
+    dropTableStm
+    spaces
+    ifExistsStm
+    spaces
+    tab <- tableRef
+    spaces
+    char ';'
+    return tab
+
+createQuery :: Text.Parsec.Prim.ParsecT
        String u Data.Functor.Identity.Identity TableDefinition
-query = do
+createQuery = do
+    spaces
+    droppedTable <- optionMaybe dropTableQuery
     spaces
     createStm
     spaces
@@ -144,4 +163,4 @@ query = do
 
 
 parseSQL :: String -> Either ParseError TableDefinition
-parseSQL input = parse query "(unknown)" input
+parseSQL input = parse createQuery "(unknown)" input
