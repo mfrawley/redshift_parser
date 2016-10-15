@@ -5,6 +5,7 @@ module Lib
     , tableRef
     , alphaNumInParens
     , numInParens
+    , fieldWithOptionalTrailingComma
     )
 where
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
@@ -47,3 +48,9 @@ numInParens = do
     spaces
     rightParen
     return val
+
+fieldWithOptionalTrailingComma = do
+    col <- sqlName
+    _ <- optionMaybe $ try $ char ','
+    spaces
+    return col

@@ -12,24 +12,26 @@ import Text.Parsec.Prim (ParsecT)
 import Data.Functor.Identity
 import Data.Maybe
 
+type DistStyle = String
+type DistKey = String
+type ColumnName = String
+
 data ColumnDefinition = ColumnDefinition {
-    colName :: String
+      colName :: ColumnName
     , colType :: String
     , colDataLen :: Maybe String
     , colDefaults :: String
 } deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
-type DistStyle = String
-type DistKey = String
-
 data TableDefinition = TableDefinition {
     schemaName :: String
   , tableName :: String
   , columns :: [ColumnDefinition]
-  , primaryKey :: Maybe String
-  , uniqueKey :: Maybe String
+  , primaryKey :: Maybe ColumnName
+  , uniqueKey :: Maybe ColumnName
   , distStyle :: Maybe DistStyle
   , distKey :: Maybe DistKey
+  , sortKeys :: Maybe [ColumnName]
 } deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
 createStm = string "create"
@@ -62,7 +64,6 @@ keyLineParser literalParser = do
     rightParen
     spaces
     return keyCol
-
 
 primaryKeyLineParser :: Text.Parsec.Prim.ParsecT
            [Char] u Data.Functor.Identity.Identity [Char]
@@ -140,6 +141,18 @@ dropTableQuery = do
     char ';'
     return tab
 
+sortKeyParser = do
+    spaces
+    string "sortkey"
+    spaces
+    leftParen
+    spaces
+    cols <- many1 $ fieldWithOptionalTrailingComma
+    spaces
+    rightParen
+    spaces
+    return cols
+
 createQuery :: Text.Parsec.Prim.ParsecT
        String u Data.Functor.Identity.Identity TableDefinition
 createQuery = do
@@ -163,6 +176,8 @@ createQuery = do
     dStyle <- optionMaybe (try distStyleParser)
     dKey <- optionMaybe (try distKeyParser)
 
+    sKeys <- optionMaybe (try sortKeyParser)
+
     return (TableDefinition {
         tableName = table
       , schemaName = schema
@@ -171,6 +186,7 @@ createQuery = do
       , uniqueKey = uKey
       , distKey = dKey
       , distStyle = dStyle
+      , sortKeys = sKeys
       })
 
 

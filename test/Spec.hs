@@ -1,3 +1,4 @@
+import Lib
 import SQLParser
 import Text.ParserCombinators.Parsec (parseTest, parse)
 import Test.HUnit (Test(..), assertEqual, assertFailure, runTestTT)
@@ -49,6 +50,11 @@ testDistStyle = TestCase $ assertEqual
   "key"
   (forceEither $ parse distStyleParser "" "diststyle key")
 
+testSortKey = TestCase $ assertEqual
+  "should parse the sortkey list"
+  ["website_id", "queued_at"]
+  (forceEither $ parse sortKeyParser "" "sortkey(website_id, queued_at)")
+
 tests = TestList [
            testParsingSQLName
           , testDefaultsParserNotNull
@@ -57,6 +63,7 @@ tests = TestList [
           , testVarcharColWithSize
           , testPrimaryKeyLine
           , testDistStyle
+          , testSortKey
         ]
 
 main = do
