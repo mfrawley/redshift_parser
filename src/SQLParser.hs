@@ -162,9 +162,6 @@ createQuery = do
     spaces
     dStyle <- optionMaybe (try distStyleParser)
     dKey <- optionMaybe (try distKeyParser)
---     let dConfig = case dKey of
---             Just dKey -> dKey
---             Nothing -> dStyle
 
     return (TableDefinition {
         tableName = table
