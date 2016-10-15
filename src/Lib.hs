@@ -3,6 +3,8 @@ module Lib
     , leftParen
     , rightParen
     , tableRef
+    , alphaNumInParens
+    , numInParens
     )
 where
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
@@ -15,10 +17,10 @@ sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Stri
 sqlName = many1 $ alphaNum <|> char '_'
 
 fullyQualifiedTable = do
-  table <- sqlName
-  char '.'
-  col <- sqlName
-  return table
+    table <- sqlName
+    char '.'
+    col <- sqlName
+    return table
 
 wildCard = string "*"
 
@@ -29,3 +31,19 @@ leftParen = char '('
 
 rightParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
 rightParen = char ')'
+
+alphaNumInParens = do
+    leftParen
+    spaces
+    val <- sqlName
+    spaces
+    rightParen
+    return val
+
+numInParens = do
+    leftParen
+    spaces
+    val <- (many1 digit)
+    spaces
+    rightParen
+    return val

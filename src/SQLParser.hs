@@ -19,13 +19,17 @@ data ColumnDefinition = ColumnDefinition {
     , colDefaults :: String
 } deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
+type DistStyle = String
+type DistKey = String
+
 data TableDefinition = TableDefinition {
     schemaName :: String
   , tableName :: String
   , columns :: [ColumnDefinition]
   , primaryKey :: Maybe String
   , uniqueKey :: Maybe String
-  , distStyle :: Maybe String
+  , distStyle :: Maybe DistStyle
+  , distKey :: Maybe DistKey
 } deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
 createStm = string "create"
@@ -69,7 +73,7 @@ uniqueKeyLineParser :: Text.Parsec.Prim.ParsecT
 uniqueKeyLineParser = keyLineParser uniqueKeyLiteral
 
 distStyleParser :: Text.Parsec.Prim.ParsecT
-           String u Data.Functor.Identity.Identity String
+           String u Data.Functor.Identity.Identity DistStyle
 distStyleParser = do
     string "diststyle"
     spaces
@@ -77,15 +81,21 @@ distStyleParser = do
     spaces
     return dStyle
 
+distKeyParser :: Text.Parsec.Prim.ParsecT
+           String u Data.Functor.Identity.Identity DistKey
+distKeyParser = do
+    string "distkey"
+    spaces
+    dKey <- alphaNumInParens
+    spaces
+    return dKey
+
 colDataLenParser  :: Text.Parsec.Prim.ParsecT
            [Char] u Data.Functor.Identity.Identity [Char]
 colDataLenParser = do
     spaces
-    leftParen
+    colDataTypeLen <- numInParens
     spaces
-    colDataTypeLen <- many1 digit
-    spaces
-    rightParen
     return colDataTypeLen
 
 lineBeginningWithComma :: Text.Parsec.Prim.ParsecT
@@ -150,7 +160,11 @@ createQuery = do
     uKey <- optionMaybe uniqueKeyLineParser
     rightParen
     spaces
-    dStyle <- optionMaybe distStyleParser
+    dStyle <- optionMaybe (try distStyleParser)
+    dKey <- optionMaybe (try distKeyParser)
+--     let dConfig = case dKey of
+--             Just dKey -> dKey
+--             Nothing -> dStyle
 
     return (TableDefinition {
         tableName = table
@@ -158,6 +172,7 @@ createQuery = do
       , columns = colDefs
       , primaryKey = pKey
       , uniqueKey = uKey
+      , distKey = dKey
       , distStyle = dStyle
       })
 
