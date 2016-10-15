@@ -10,3 +10,5 @@ import Data.Char (toLower, toUpper)
 import Text.Parsec.Prim (ParsecT)
 import Data.Functor.Identity
 import Data.Maybe
+
+selectStm = string "select"

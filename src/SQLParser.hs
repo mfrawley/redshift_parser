@@ -12,8 +12,12 @@ import Text.Parsec.Prim (ParsecT)
 import Data.Functor.Identity
 import Data.Maybe
 
+type DistStyle = String
+type DistKey = String
+type ColumnName = String
+
 data ColumnDefinition = ColumnDefinition {
-    colName :: String
+      colName :: ColumnName
     , colType :: String
     , colDataLen :: Maybe String
     , colDefaults :: String
@@ -23,9 +27,11 @@ data TableDefinition = TableDefinition {
     schemaName :: String
   , tableName :: String
   , columns :: [ColumnDefinition]
-  , primaryKey :: Maybe String
-  , uniqueKey :: Maybe String
-  , distStyle :: Maybe String
+  , primaryKey :: Maybe ColumnName
+  , uniqueKey :: Maybe ColumnName
+  , distStyle :: Maybe DistStyle
+  , distKey :: Maybe DistKey
+  , sortKeys :: Maybe [ColumnName]
 } deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
 createStm = string "create"
@@ -35,6 +41,8 @@ colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Ide
 colDataTypeParser = string "int"
         <|> string "varchar"
         <|> string "float"
+        <|> string "timestamp"
+        <|> string "bigint"
 
 defaultsParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 defaultsParser = string "not null" <|> string "default null"
@@ -57,7 +65,6 @@ keyLineParser literalParser = do
     spaces
     return keyCol
 
-
 primaryKeyLineParser :: Text.Parsec.Prim.ParsecT
            [Char] u Data.Functor.Identity.Identity [Char]
 primaryKeyLineParser = keyLineParser primaryKeyLiteral
@@ -67,7 +74,7 @@ uniqueKeyLineParser :: Text.Parsec.Prim.ParsecT
 uniqueKeyLineParser = keyLineParser uniqueKeyLiteral
 
 distStyleParser :: Text.Parsec.Prim.ParsecT
-           String u Data.Functor.Identity.Identity String
+           String u Data.Functor.Identity.Identity DistStyle
 distStyleParser = do
     string "diststyle"
     spaces
@@ -75,15 +82,21 @@ distStyleParser = do
     spaces
     return dStyle
 
+distKeyParser :: Text.Parsec.Prim.ParsecT
+           String u Data.Functor.Identity.Identity DistKey
+distKeyParser = do
+    string "distkey"
+    spaces
+    dKey <- alphaNumInParens
+    spaces
+    return dKey
+
 colDataLenParser  :: Text.Parsec.Prim.ParsecT
            [Char] u Data.Functor.Identity.Identity [Char]
 colDataLenParser = do
     spaces
-    leftParen
+    colDataTypeLen <- numInParens
     spaces
-    colDataTypeLen <- many1 digit
-    spaces
-    rightParen
     return colDataTypeLen
 
 lineBeginningWithComma :: Text.Parsec.Prim.ParsecT
@@ -113,9 +126,38 @@ colWithSize = do
         , colDefaults = defaults
         })
 
-query :: Text.Parsec.Prim.ParsecT
+dropTableStm = string "drop table"
+
+ifExistsStm = string "if exists" <|> string "if not exists"
+
+dropTableQuery = do
+    spaces
+    dropTableStm
+    spaces
+    ifExistsStm
+    spaces
+    tab <- tableRef
+    spaces
+    char ';'
+    return tab
+
+sortKeyParser = do
+    spaces
+    string "sortkey"
+    spaces
+    leftParen
+    spaces
+    cols <- many1 $ fieldWithOptionalTrailingComma
+    spaces
+    rightParen
+    spaces
+    return cols
+
+createQuery :: Text.Parsec.Prim.ParsecT
        String u Data.Functor.Identity.Identity TableDefinition
-query = do
+createQuery = do
+    spaces
+    droppedTable <- optionMaybe dropTableQuery
     spaces
     createStm
     spaces
@@ -131,7 +173,10 @@ query = do
     uKey <- optionMaybe uniqueKeyLineParser
     rightParen
     spaces
-    dStyle <- optionMaybe distStyleParser
+    dStyle <- optionMaybe (try distStyleParser)
+    dKey <- optionMaybe (try distKeyParser)
+
+    sKeys <- optionMaybe (try sortKeyParser)
 
     return (TableDefinition {
         tableName = table
@@ -139,9 +184,11 @@ query = do
       , columns = colDefs
       , primaryKey = pKey
       , uniqueKey = uKey
+      , distKey = dKey
       , distStyle = dStyle
+      , sortKeys = sKeys
       })
 
 
 parseSQL :: String -> Either ParseError TableDefinition
-parseSQL input = parse query "(unknown)" input
+parseSQL input = parse createQuery "(unknown)" input
