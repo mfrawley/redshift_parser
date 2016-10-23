@@ -3,8 +3,7 @@ module SQLParser
 
 where
 import Lib
-import GHC.Generics
-import Data.Aeson (ToJSON, FromJSON)
+import Types
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
   , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
 import Data.Char (toLower, toUpper)
@@ -12,37 +11,11 @@ import Text.Parsec.Prim (ParsecT)
 import Data.Functor.Identity
 import Data.Maybe
 
-type DistStyle = String
-type DistKey = String
-type ColumnName = String
 
-data ColumnDefinition = ColumnDefinition {
-      colName :: ColumnName
-    , colType :: String
-    , colDataLen :: Maybe String
-    , colDefaults :: String
-} deriving (Eq, Generic, Show, ToJSON, FromJSON)
-
-data TableDefinition = TableDefinition {
-    schemaName :: String
-  , tableName :: String
-  , columns :: [ColumnDefinition]
-  , primaryKey :: Maybe ColumnName
-  , uniqueKey :: Maybe ColumnName
-  , distStyle :: Maybe DistStyle
-  , distKey :: Maybe DistKey
-  , sortKeys :: Maybe [ColumnName]
-} deriving (Eq, Generic, Show, ToJSON, FromJSON)
-
-createStm = string "create"
-table = string "table"
-
-colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
-colDataTypeParser = string "int"
-        <|> string "varchar"
-        <|> string "float"
-        <|> string "timestamp"
-        <|> string "bigint"
+createStm = do
+    string "create table"
+    spaces
+    ifExistsStm
 
 defaultsParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
 defaultsParser = string "not null" <|> string "default null"
@@ -91,14 +64,6 @@ distKeyParser = do
     spaces
     return dKey
 
-colDataLenParser  :: Text.Parsec.Prim.ParsecT
-           [Char] u Data.Functor.Identity.Identity [Char]
-colDataLenParser = do
-    spaces
-    colDataTypeLen <- numInParens
-    spaces
-    return colDataTypeLen
-
 lineBeginningWithComma :: Text.Parsec.Prim.ParsecT
        [Char] u Data.Functor.Identity.Identity ()
 lineBeginningWithComma = do
@@ -114,7 +79,7 @@ colWithSize = do
     spaces
     colDataType <- colDataTypeParser
     spaces
-    colDataTypeLen <- optionMaybe colDataLenParser
+    colDataTypeLen <- colDataLenParser
     spaces
     defaults <- option "" defaultsParser
     spaces
@@ -128,7 +93,7 @@ colWithSize = do
 
 dropTableStm = string "drop table"
 
-ifExistsStm = string "if exists" <|> string "if not exists"
+ifExistsStm = string "if not exists" <|> string "if exists"
 
 dropTableQuery = do
     spaces
@@ -160,8 +125,6 @@ createQuery = do
     droppedTable <- optionMaybe dropTableQuery
     spaces
     createStm
-    spaces
-    t <- table
     spaces
     schema <- sqlName
     char '.'

@@ -1,4 +1,5 @@
 import Lib
+import Types
 import SQLParser
 import Text.ParserCombinators.Parsec (parseTest, parse)
 import Test.HUnit (Test(..), assertEqual, assertFailure, runTestTT)
@@ -55,6 +56,11 @@ testSortKey = TestCase $ assertEqual
   ["website_id", "queued_at"]
   (forceEither $ parse sortKeyParser "" "sortkey(website_id, queued_at)")
 
+testIntPairInParens = TestCase $ assertEqual
+  "should parse a pair of ints in parentheses"
+  (12,2)
+  (forceEither $ parse intPairInParens "" "(12,2)")
+
 tests = TestList [
            testParsingSQLName
           , testDefaultsParserNotNull
@@ -64,6 +70,7 @@ tests = TestList [
           , testPrimaryKeyLine
           , testDistStyle
           , testSortKey
+          , testIntPairInParens
         ]
 
 main = do

@@ -3,15 +3,19 @@ module Lib
     , leftParen
     , rightParen
     , tableRef
+    , fullyQualifiedTable
     , alphaNumInParens
     , numInParens
     , fieldWithOptionalTrailingComma
+    , colDataTypeParser
+    , colDataLenParser
     )
 where
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
   , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
 import Text.Parsec.Prim (ParsecT)
 import Data.Functor.Identity
+import Types
 
 {-Parses a table or column name-}
 sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
@@ -47,10 +51,40 @@ numInParens = do
     val <- (many1 digit)
     spaces
     rightParen
-    return val
+    let intVal = read val :: Int
+    return ColumnLength {colLen = intVal, colPrecision = 0}
+
+-- Used in decimal precision - e.g. (12,2)
+intPairInParens = do
+    leftParen
+    spaces
+    val1 <- (many1 digit)
+    let val1Int = read val1 :: Int
+    char ','
+    spaces
+    val2 <- (many1 digit)
+    let val2Int = read val2 :: Int
+    return ColumnLength {colLen = val1Int, colPrecision = val2Int}
 
 fieldWithOptionalTrailingComma = do
     col <- sqlName
     _ <- optionMaybe $ try $ char ','
     spaces
     return col
+
+colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+colDataTypeParser = string "int"
+        <|> string "varchar"
+        <|> string "float"
+        <|> string "timestamp"
+        <|> string "bigint"
+        <|> string "date"
+        <|> string "decimal"
+
+colDataLenParser  :: Text.Parsec.Prim.ParsecT
+           [Char] u Data.Functor.Identity.Identity (Maybe ColumnLength)
+colDataLenParser = do
+    spaces
+    l <- try $ optionMaybe $ intPairInParens <|> numInParens
+    spaces
+    return l
