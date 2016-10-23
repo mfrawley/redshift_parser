@@ -6,6 +6,7 @@ module Lib
     , fullyQualifiedTable
     , alphaNumInParens
     , numInParens
+    , intPairInParens
     , fieldWithOptionalTrailingComma
     , colDataTypeParser
     , colDataLenParser
@@ -64,6 +65,8 @@ intPairInParens = do
     spaces
     val2 <- (many1 digit)
     let val2Int = read val2 :: Int
+    spaces
+    rightParen
     return ColumnLength {colLen = val1Int, colPrecision = val2Int}
 
 fieldWithOptionalTrailingComma = do
