@@ -56,10 +56,10 @@ testSortKey = TestCase $ assertEqual
   ["website_id", "queued_at"]
   (forceEither $ parse sortKeyParser "" "sortkey(website_id, queued_at)")
 
--- testIntPairInParens = TestCase $ assertEqual
---   "should parse a pair of ints in parentheses"
---   ColumnLength { colLen = 12, colPrecision = 2}
---   (forceEither $ parse intPairInParens "" "(12,2)")
+testIntPairInParens = TestCase $ assertEqual
+  "should parse a pair of ints in parentheses"
+  ColumnLength { colLen = 12, colPrecision = Just 2}
+  (forceEither $ parse intPairInParens "" "(12,2)")
 
 tests = TestList [
            testParsingSQLName
@@ -67,11 +67,11 @@ tests = TestList [
           , testDefaultsParserDefaultNull
           , testColWithNoSize
           , testVarcharColWithSize
+          , testIntPairInParens
+          , testPrimaryKeyLine
+          , testDistStyle
+          , testSortKey
 
---           , testPrimaryKeyLine
---           , testDistStyle
---           , testSortKey
---           , testIntPairInParens
         ]
 
 main = do
