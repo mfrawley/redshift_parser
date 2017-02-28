@@ -41,6 +41,16 @@ testVarcharColWithSize = TestCase $ assertEqual
       })
   (forceEither $ parse colWithSize  "" "  activity_name   varchar(255)  not null\n")
 
+testDecimalCol = TestCase $ assertEqual
+  "should parse a line defining a column with field type decimal"
+  (ColumnDefinition {
+      colName = "sum_click_costs"
+      , colType = "decimal"
+      , colDataLen = Just ColumnLength {colLen = 12, colPrecision = Just 2}
+      , colDefaults = "not null"
+      })
+  (forceEither $ parse colWithSize  "" ", sum_click_costs                       decimal(12, 2)      not null")
+
 testPrimaryKeyLine = TestCase $ assertEqual
   "should parse a line defining a primary key field"
   "activity_id"
@@ -86,6 +96,7 @@ tests = TestList [
           , testDefaultsParserNotNull
           , testDefaultsParserDefaultNull
           , testColWithNoSize
+          , testDecimalCol
           , testVarcharColWithSize
           , testIntPairInParens
           , testPrimaryKeyLine

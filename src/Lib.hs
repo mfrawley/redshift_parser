@@ -24,9 +24,9 @@ sqlName :: Text.Parsec.Prim.ParsecT [Char] u Identity String
 sqlName = many1 $ alphaNum <|> char '_'
 
 fullyQualifiedTable = do
-    table <- sqlName
+    schema <- sqlName
     char '.'
-    col <- sqlName
+    table <- sqlName
     return table
 
 wildCard = string "*"
@@ -82,13 +82,13 @@ colDataTypeParser = string "int"
         <|> string "float"
         <|> string "timestamp"
         <|> string "bigint"
-        <|> string "date"
+        <|> (try $ string "date")
         <|> string "decimal"
 
 colDataLenParser  :: Text.Parsec.Prim.ParsecT
            [Char] u Identity (Maybe ColumnLength)
 colDataLenParser = do
     spaces
-    res <- (optionMaybe numInParens) <|> (optionMaybe intPairInParens)
+    res <- optionMaybe $ (try intPairInParens) <|> numInParens
     spaces
     return res
