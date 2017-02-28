@@ -10,7 +10,7 @@ type DistKey = String
 type ColumnName = String
 data ColumnLength = ColumnLength {
       colLen :: Int
-    , colPrecision :: Int
+    , colPrecision :: Maybe Int
 } deriving (Show, Eq, Generic, ToJSON, FromJSON)
 
 data ColumnDefinition = ColumnDefinition {

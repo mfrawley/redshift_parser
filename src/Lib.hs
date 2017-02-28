@@ -15,11 +15,12 @@ where
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
   , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
 import Text.Parsec.Prim (ParsecT)
-import Data.Functor.Identity
+import Data.Functor.Identity (Identity)
+import Data.Maybe (fromJust)
 import Types
 
 {-Parses a table or column name-}
-sqlName :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+sqlName :: Text.Parsec.Prim.ParsecT [Char] u Identity String
 sqlName = many1 $ alphaNum <|> char '_'
 
 fullyQualifiedTable = do
@@ -32,10 +33,10 @@ wildCard = string "*"
 
 tableRef = wildCard <|> fullyQualifiedTable <|> sqlName
 
-leftParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
+leftParen :: Text.Parsec.Prim.ParsecT [Char] u Identity Char
 leftParen = char '('
 
-rightParen :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity Char
+rightParen :: Text.Parsec.Prim.ParsecT [Char] u Identity Char
 rightParen = char ')'
 
 alphaNumInParens = do
@@ -53,7 +54,7 @@ numInParens = do
     spaces
     rightParen
     let intVal = read val :: Int
-    return ColumnLength {colLen = intVal, colPrecision = 0}
+    return ColumnLength {colLen = intVal, colPrecision = Nothing}
 
 -- Used in decimal precision - e.g. (12,2)
 intPairInParens = do
@@ -67,7 +68,7 @@ intPairInParens = do
     let val2Int = read val2 :: Int
     spaces
     rightParen
-    return ColumnLength {colLen = val1Int, colPrecision = val2Int}
+    return ColumnLength {colLen = val1Int, colPrecision = Just val2Int}
 
 fieldWithOptionalTrailingComma = do
     col <- sqlName
@@ -75,7 +76,7 @@ fieldWithOptionalTrailingComma = do
     spaces
     return col
 
-colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Identity String
 colDataTypeParser = string "int"
         <|> string "varchar"
         <|> string "float"
@@ -85,9 +86,9 @@ colDataTypeParser = string "int"
         <|> string "decimal"
 
 colDataLenParser  :: Text.Parsec.Prim.ParsecT
-           [Char] u Data.Functor.Identity.Identity (Maybe ColumnLength)
+           [Char] u Identity (Maybe ColumnLength)
 colDataLenParser = do
     spaces
-    l <- try $ optionMaybe $ intPairInParens <|> numInParens
+    res <- (optionMaybe numInParens) <|> (optionMaybe intPairInParens)
     spaces
-    return l
+    return res
