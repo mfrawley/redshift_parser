@@ -5,25 +5,32 @@ where
 import Lib
 import Types
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
-  , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
+  , alphaNum, many1, char, try, many1, digit, optionMaybe, option, optional, endBy)
 import Data.Char (toLower, toUpper)
 import Text.Parsec.Prim (ParsecT)
-import Data.Functor.Identity
+import Data.Functor.Identity (Identity)
 import Data.Maybe
 
 
 createStm = do
+    spaces
     string "create table"
     spaces
-    ifExistsStm
+    optional ifExistsStm
+    spaces
+    schema <- sqlName
+    char '.'
+    table <- sqlName
+    spaces
+    return (schema, table)
 
-defaultsParser :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+defaultsParser :: Text.Parsec.Prim.ParsecT [Char] u Identity String
 defaultsParser = string "not null" <|> string "default null"
 
-primaryKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+primaryKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Identity String
 primaryKeyLiteral = string "primary key"
 
-uniqueKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Data.Functor.Identity.Identity String
+uniqueKeyLiteral :: Text.Parsec.Prim.ParsecT [Char] u Identity String
 uniqueKeyLiteral = string "unique"
 
 keyLineParser literalParser = do
@@ -39,15 +46,15 @@ keyLineParser literalParser = do
     return keyCol
 
 primaryKeyLineParser :: Text.Parsec.Prim.ParsecT
-           [Char] u Data.Functor.Identity.Identity [Char]
+           [Char] u Identity [Char]
 primaryKeyLineParser = keyLineParser primaryKeyLiteral
 
 uniqueKeyLineParser :: Text.Parsec.Prim.ParsecT
-           [Char] u Data.Functor.Identity.Identity [Char]
+           [Char] u Identity [Char]
 uniqueKeyLineParser = keyLineParser uniqueKeyLiteral
 
 distStyleParser :: Text.Parsec.Prim.ParsecT
-           String u Data.Functor.Identity.Identity DistStyle
+           String u Identity DistStyle
 distStyleParser = do
     string "diststyle"
     spaces
@@ -56,7 +63,7 @@ distStyleParser = do
     return dStyle
 
 distKeyParser :: Text.Parsec.Prim.ParsecT
-           String u Data.Functor.Identity.Identity DistKey
+           String u Identity DistKey
 distKeyParser = do
     string "distkey"
     spaces
@@ -65,14 +72,14 @@ distKeyParser = do
     return dKey
 
 lineBeginningWithComma :: Text.Parsec.Prim.ParsecT
-       [Char] u Data.Functor.Identity.Identity ()
+       [Char] u Identity ()
 lineBeginningWithComma = do
     spaces
     c <- optionMaybe (char ',')
     spaces
 
 colWithSize :: Text.Parsec.Prim.ParsecT
-       [Char] u Data.Functor.Identity.Identity ColumnDefinition
+       [Char] u Identity ColumnDefinition
 colWithSize = do
     lineBeginningWithComma
     columnName <- sqlName
@@ -119,17 +126,12 @@ sortKeyParser = do
     return cols
 
 createQuery :: Text.Parsec.Prim.ParsecT
-       String u Data.Functor.Identity.Identity TableDefinition
+       String u Identity TableDefinition
 createQuery = do
     spaces
     droppedTable <- optionMaybe dropTableQuery
     spaces
-    createStm
-    spaces
-    schema <- sqlName
-    char '.'
-    table <- sqlName
-    spaces
+    (schema, table) <- createStm
     leftParen
     colDefs <- (many1 (try colWithSize))
     pKey <- optionMaybe primaryKeyLineParser

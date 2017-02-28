@@ -39,7 +39,7 @@ testVarcharColWithSize = TestCase $ assertEqual
       , colDataLen = Just ColumnLength {colLen = 255, colPrecision = Nothing}
       , colDefaults = "not null"
       })
-  (forceEither $ parse colWithSize  "" "   activity_name   varchar(255)  not null\n")
+  (forceEither $ parse colWithSize  "" "  activity_name   varchar(255)  not null\n")
 
 testPrimaryKeyLine = TestCase $ assertEqual
   "should parse a line defining a primary key field"
@@ -61,6 +61,11 @@ testIntPairInParens = TestCase $ assertEqual
   ColumnLength { colLen = 12, colPrecision = Just 2}
   (forceEither $ parse intPairInParens "" "(12,2)")
 
+testCreateWithNoExistentialCheck = TestCase $ assertEqual
+  "should parse a pair of ints in parentheses"
+  ("mapping", "activity")
+  (forceEither $ parse createStm "" "create table mapping.activity(")
+
 tests = TestList [
            testParsingSQLName
           , testDefaultsParserNotNull
@@ -71,6 +76,7 @@ tests = TestList [
           , testPrimaryKeyLine
           , testDistStyle
           , testSortKey
+          , testCreateWithNoExistentialCheck
 
         ]
 
