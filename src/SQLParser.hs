@@ -106,7 +106,7 @@ dropTableQuery = do
     spaces
     dropTableStm
     spaces
-    ifExistsStm
+    optional (string "if exists")
     spaces
     tab <- tableRef
     spaces

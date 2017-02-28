@@ -61,10 +61,25 @@ testIntPairInParens = TestCase $ assertEqual
   ColumnLength { colLen = 12, colPrecision = Just 2}
   (forceEither $ parse intPairInParens "" "(12,2)")
 
-testCreateWithNoExistentialCheck = TestCase $ assertEqual
-  "should parse a pair of ints in parentheses"
-  ("mapping", "activity")
-  (forceEither $ parse createStm "" "create table mapping.activity(")
+testCreateTable = TestCase $ assertEqual
+  "should parse a create statement"
+  ("logs", "freetrial")
+  (forceEither $ parse createStm "" "create table logs.freetrial (")
+
+testCreateTableWithExistentialCheck = TestCase $ assertEqual
+  "should parse a create statement with existential check"
+  ("logs", "freetrial")
+  (forceEither $ parse createStm "" "create table if not exists logs.freetrial (")
+
+testDropTable = TestCase $ assertEqual
+  "should parse a simple drop table statement"
+  "freetrial"
+  (forceEither $ parse dropTableQuery "" "drop table logs.freetrial;")
+
+testDropTableWithExistentialCheck = TestCase $ assertEqual
+  "should parse a drop table with an 'if exists' statement"
+  "freetrial"
+  (forceEither $ parse dropTableQuery "" "drop table if exists logs.freetrial;")
 
 tests = TestList [
            testParsingSQLName
@@ -76,8 +91,10 @@ tests = TestList [
           , testPrimaryKeyLine
           , testDistStyle
           , testSortKey
-          , testCreateWithNoExistentialCheck
-
+          , testCreateTable
+          , testCreateTableWithExistentialCheck
+          , testDropTable
+          , testDropTableWithExistentialCheck
         ]
 
 main = do
