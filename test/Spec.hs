@@ -22,7 +22,7 @@ testDefaultsParserDefaultNull = TestCase $ assertEqual
   (forceEither $ parse defaultsParser "" "default null")
 
 testColWithNoSize = TestCase $ assertEqual
-  "should a line defining a column with no size defined"
+  "should parse a column with no size defined"
   (ColumnDefinition {
       colName = "activity_id"
       , colType = "int"
@@ -32,7 +32,7 @@ testColWithNoSize = TestCase $ assertEqual
   (forceEither $ parse colWithSize  "" " , activity_id     int           not null \n")
 
 testVarcharColWithSize = TestCase $ assertEqual
-  "should a line defining a column with no size defined"
+  "should parse a column with no size defined"
   (ColumnDefinition {
       colName = "activity_name"
       , colType = "varchar"
@@ -41,15 +41,37 @@ testVarcharColWithSize = TestCase $ assertEqual
       })
   (forceEither $ parse colWithSize  "" "  activity_name   varchar(255)  not null\n")
 
+
+testVarcharColWithMaxSize = TestCase $ assertEqual
+  "should parse a varchar column with max size defined"
+  (ColumnDefinition {
+      colName = "activity_name"
+      , colType = "varchar"
+      , colDataLen = Just ColumnLength {colLen = 65535, colPrecision = Nothing}
+      , colDefaults = "not null"
+      })
+  (forceEither $ parse colWithSize  "" "  activity_name   varchar(max)  not null\n")
+
 testDecimalCol = TestCase $ assertEqual
-  "should parse a line defining a column with field type decimal"
+  "should parse a column with type decimal"
   (ColumnDefinition {
       colName = "sum_click_costs"
       , colType = "decimal"
       , colDataLen = Just ColumnLength {colLen = 12, colPrecision = Just 2}
       , colDefaults = "not null"
       })
-  (forceEither $ parse colWithSize  "" ", sum_click_costs                       decimal(12, 2)      not null")
+  (forceEither $ parse colWithSize  "" ", sum_click_costs decimal(12, 2)      not null")
+
+
+testBooleanCol = TestCase $ assertEqual
+  "should parse a column with type boolean"
+  (ColumnDefinition {
+      colName = "is_notification_newsletter_active"
+      , colType = "boolean"
+      , colDataLen = Nothing
+      , colDefaults = "not null"
+      })
+  (forceEither $ parse colWithSize  "" ", is_notification_newsletter_active boolean not null")
 
 testPrimaryKeyLine = TestCase $ assertEqual
   "should parse a line defining a primary key field"
@@ -98,6 +120,8 @@ tests = TestList [
           , testColWithNoSize
           , testDecimalCol
           , testVarcharColWithSize
+          , testVarcharColWithMaxSize
+          , testBooleanCol
           , testIntPairInParens
           , testPrimaryKeyLine
           , testDistStyle

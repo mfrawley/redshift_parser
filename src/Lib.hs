@@ -56,6 +56,16 @@ numInParens = do
     let intVal = read val :: Int
     return ColumnLength {colLen = intVal, colPrecision = Nothing}
 
+{-column_name(max) indicates max int32 size-}
+maxInParens = do
+    leftParen
+    spaces
+    string "max"
+    spaces
+    rightParen
+    let intVal = 65535
+    return ColumnLength {colLen = intVal, colPrecision = Nothing}
+
 -- Used in decimal precision - e.g. (12,2)
 intPairInParens = do
     leftParen
@@ -77,18 +87,23 @@ fieldWithOptionalTrailingComma = do
     return col
 
 colDataTypeParser :: Text.Parsec.Prim.ParsecT [Char] u Identity String
-colDataTypeParser = string "int"
-        <|> string "varchar"
-        <|> string "float"
-        <|> string "timestamp"
-        <|> string "bigint"
+colDataTypeParser = (try $ string "bigint")
+        <|> string "boolean"
+        <|> string "char"
         <|> (try $ string "date")
         <|> string "decimal"
+        <|> string "float"
+        <|> (try $ string "integer")
+        <|> string "int"
+        <|> string "timestamp"
+        <|> string "varchar"
+
+
 
 colDataLenParser  :: Text.Parsec.Prim.ParsecT
            [Char] u Identity (Maybe ColumnLength)
 colDataLenParser = do
     spaces
-    res <- optionMaybe $ (try intPairInParens) <|> numInParens
+    res <- optionMaybe $ (try intPairInParens) <|> (try numInParens) <|> (try maxInParens)
     spaces
     return res
