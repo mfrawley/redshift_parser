@@ -10,17 +10,31 @@ module Lib
     , fieldWithOptionalTrailingComma
     , colDataTypeParser
     , colDataLenParser
+    , spacesOrComment
     )
 where
 import Text.ParserCombinators.Parsec ((<|>), (<?>), string, spaces, parse, ParseError
-  , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy)
+  , alphaNum, many1, char, try, many1, digit, optionMaybe, option, endBy, manyTill)
 import Text.Parsec.Prim (ParsecT)
+import Text.Parsec.Char (anyChar)
 import Data.Functor.Identity (Identity)
 import Data.Maybe (fromJust)
 import Types
 
+commentStart = string "/*"
+commentEnd = string "*/"
+
+multiLineComment = do
+    commentStart
+    manyTill anyChar (try commentEnd)
+    return ()
+
+
+spacesOrComment :: ParsecT [Char] u Identity ()
+spacesOrComment = (try multiLineComment) <|> spaces
+    
 {-Parses a table or column name-}
-sqlName :: Text.Parsec.Prim.ParsecT [Char] u Identity String
+sqlName :: ParsecT [Char] u Identity String
 sqlName = many1 $ alphaNum <|> char '_'
 
 fullyQualifiedTable = do
@@ -33,10 +47,10 @@ wildCard = string "*"
 
 tableRef = wildCard <|> fullyQualifiedTable <|> sqlName
 
-leftParen :: Text.Parsec.Prim.ParsecT [Char] u Identity Char
+leftParen :: ParsecT [Char] u Identity Char
 leftParen = char '('
 
-rightParen :: Text.Parsec.Prim.ParsecT [Char] u Identity Char
+rightParen :: ParsecT [Char] u Identity Char
 rightParen = char ')'
 
 alphaNumInParens = do
@@ -95,8 +109,10 @@ colDataTypeParser = (try $ string "bigint")
         <|> string "float"
         <|> (try $ string "integer")
         <|> string "int"
+        <|> string "smallint"
         <|> string "timestamp"
         <|> string "varchar"
+
 
 
 

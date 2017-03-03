@@ -18,6 +18,7 @@ data ColumnDefinition = ColumnDefinition {
     , colType :: String
     , colDataLen :: Maybe ColumnLength
     , colDefaults :: String
+    , colEncoding :: Maybe String
 } deriving (Eq, Generic, Show, ToJSON, FromJSON)
 
 data TableDefinition = TableDefinition {

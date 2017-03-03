@@ -28,6 +28,8 @@ testColWithNoSize = TestCase $ assertEqual
       , colType = "int"
       , colDataLen = Nothing
       , colDefaults = "not null"
+      , colEncoding = Nothing
+
       })
   (forceEither $ parse colWithSize  "" " , activity_id     int           not null \n")
 
@@ -38,6 +40,7 @@ testVarcharColWithSize = TestCase $ assertEqual
       , colType = "varchar"
       , colDataLen = Just ColumnLength {colLen = 255, colPrecision = Nothing}
       , colDefaults = "not null"
+      , colEncoding = Nothing
       })
   (forceEither $ parse colWithSize  "" "  activity_name   varchar(255)  not null\n")
 
@@ -49,6 +52,7 @@ testVarcharColWithMaxSize = TestCase $ assertEqual
       , colType = "varchar"
       , colDataLen = Just ColumnLength {colLen = 65535, colPrecision = Nothing}
       , colDefaults = "not null"
+      , colEncoding = Nothing
       })
   (forceEither $ parse colWithSize  "" "  activity_name   varchar(max)  not null\n")
 
@@ -59,6 +63,7 @@ testDecimalCol = TestCase $ assertEqual
       , colType = "decimal"
       , colDataLen = Just ColumnLength {colLen = 12, colPrecision = Just 2}
       , colDefaults = "not null"
+      , colEncoding = Nothing
       })
   (forceEither $ parse colWithSize  "" ", sum_click_costs decimal(12, 2)      not null")
 
@@ -70,8 +75,20 @@ testBooleanCol = TestCase $ assertEqual
       , colType = "boolean"
       , colDataLen = Nothing
       , colDefaults = "not null"
+      , colEncoding = Nothing
       })
   (forceEither $ parse colWithSize  "" ", is_notification_newsletter_active boolean not null")
+
+testEncodingCol = TestCase $ assertEqual
+  "should parse a column with an explicit encoding"
+  (ColumnDefinition {
+      colName = "id"
+      , colType = "bigint"
+      , colDataLen = Nothing
+      , colDefaults = "not null"
+      , colEncoding = Just "delta"
+      })
+  (forceEither $ parse colWithSize  "" "id                      bigint    not null     encode delta")
 
 testPrimaryKeyLine = TestCase $ assertEqual
   "should parse a line defining a primary key field"
@@ -113,6 +130,16 @@ testDropTableWithExistentialCheck = TestCase $ assertEqual
   "freetrial"
   (forceEither $ parse dropTableQuery "" "drop table if exists logs.freetrial;")
 
+testComment = TestCase $ assertEqual
+  "should parse a comment"
+  ()
+  (forceEither $ parse spacesOrComment "" " /** //ssdfdsf */")
+
+testEncodeParser = TestCase $ assertEqual
+  "should parse a col encoding"
+  ("lzo")
+  (forceEither $ parse encodeParser "" "encode lzo")
+
 tests = TestList [
            testParsingSQLName
           , testDefaultsParserNotNull
@@ -130,6 +157,9 @@ tests = TestList [
           , testCreateTableWithExistentialCheck
           , testDropTable
           , testDropTableWithExistentialCheck
+          , testComment
+          , testEncodeParser
+          , testEncodingCol
         ]
 
 main = do

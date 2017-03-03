@@ -78,6 +78,16 @@ lineBeginningWithComma = do
     c <- optionMaybe (char ',')
     spaces
 
+encodeParser = do
+    string "encode "
+    encoding <- string "delta" <|>
+        string "bytedict" <|>
+        string "lzo" <|>
+        string "raw" <|>
+        string "mostly32"
+        
+    return encoding
+    
 colWithSize :: Text.Parsec.Prim.ParsecT
        [Char] u Identity ColumnDefinition
 colWithSize = do
@@ -90,12 +100,15 @@ colWithSize = do
     spaces
     defaults <- option "" defaultsParser
     spaces
+    encoding <- optionMaybe encodeParser
+    spaces
 
     return (ColumnDefinition {
         colName = columnName
         , colType = colDataType
         , colDataLen = colDataTypeLen
         , colDefaults = defaults
+        , colEncoding = encoding
         })
 
 dropTableStm = string "drop table"
@@ -128,8 +141,9 @@ sortKeyParser = do
 createQuery :: Text.Parsec.Prim.ParsecT
        String u Identity TableDefinition
 createQuery = do
-    spaces
-    droppedTable <- optionMaybe dropTableQuery
+    optional (try spacesOrComment)
+    optional (try dropTableQuery)
+--     try dropTableQuery
     spaces
     (schema, table) <- createStm
     leftParen
