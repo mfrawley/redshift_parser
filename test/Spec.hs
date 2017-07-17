@@ -100,6 +100,13 @@ testDistStyle = TestCase $ assertEqual
   "key"
   (forceEither $ parse distStyleParser "" "diststyle key")
 
+testInvalidDistStyle = TestCase $ assertEqual
+  "should NOT parse a line defining an invalid distribution style"
+  "(line 1, column 11):\nunexpected \"f\"\nexpecting space, \"all\", \"even\" or \"key\""
+  (case (parse distStyleParser "" "diststyle foo") of
+    Left e -> show e
+    Right p -> "")
+
 testSortKey = TestCase $ assertEqual
   "should parse the sortkey list"
   ["website_id", "queued_at"]
@@ -152,6 +159,7 @@ tests = TestList [
           , testIntPairInParens
           , testPrimaryKeyLine
           , testDistStyle
+          , testInvalidDistStyle
           , testSortKey
           , testCreateTable
           , testCreateTableWithExistentialCheck

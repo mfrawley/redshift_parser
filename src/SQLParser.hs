@@ -56,7 +56,8 @@ uniqueKeyLineParser = keyLineParser uniqueKeyLiteral
 distStyleParser :: Text.Parsec.Prim.ParsecT
            String u Identity DistStyle
 distStyleParser = do
-    string "diststyle"
+    try $ do
+        string "diststyle"
     spaces
     dStyle <- string "all" <|> string "even" <|> string "key"
     spaces
@@ -152,7 +153,9 @@ createQuery = do
     uKey <- optionMaybe uniqueKeyLineParser
     rightParen
     spaces
-    dStyle <- optionMaybe (try distStyleParser)
+
+    dStyle <- option "" distStyleParser
+    
     dKey <- optionMaybe (try distKeyParser)
 
     sKeys <- optionMaybe (try sortKeyParser)
@@ -164,7 +167,7 @@ createQuery = do
       , primaryKey = pKey
       , uniqueKey = uKey
       , distKey = dKey
-      , distStyle = dStyle
+      , distStyle = Just dStyle
       , sortKeys = sKeys
       })
 
